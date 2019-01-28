@@ -8,9 +8,22 @@ class BaseClassifier(ABC):
     def __init__(self, classifier):
         self.classifier = classifier
 
-    @abstractmethod
     def train(self, data):
         """Trains a model and saves it to disc
+
+        Parameters
+        ----------
+            data: data to be used during the training phase
+
+        Returns
+        -------
+        """
+        self.train_model(data)
+        self.save()
+
+    @abstractmethod
+    def train_model(self, data):
+        """Trains the model using the provided data
 
         Parameters
         ----------
