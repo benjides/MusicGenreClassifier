@@ -1,6 +1,7 @@
 import csv
 import random
-from example import Example
+import logging
+from module.data.example import Example
 
 class Dataset(object):
     """Dataset class. """
@@ -10,36 +11,15 @@ class Dataset(object):
         'lastfm': 'lastfm-2017.tsv',
         'tagtraum': 'tagtraum-2017.tsv',
     }
+    logger = logging.getLogger(__name__)
 
     def __init__(self, source):
-        self.dataset = []
-        with open(self.root + self.source[source], 'r') as csvfile:
-            next(csvfile)
-            reader = csv.reader(csvfile, delimiter='\t')
-            for row in reader:
-                self.dataset.append(Example(row[0], row[2:]))
-        print("Dataset loaded")
+        self.logger.info('Reading %s data async', source)
+        csvfile = open(self.root + self.source[source], 'r')
+        next(csvfile)
+        self.reader = csv.reader(csvfile, delimiter='\t')
 
-    def get_training(self):
-        """Get the whole dataset
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-            dataset: The training dataset
-        """
-        return self.dataset
-
-    def get_random(self):
-        """Returns a random training example
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-            example: Random example.
-        """
-        return random.choice(self.dataset)
+    def __iter__(self):
+        '''Generator function.'''
+        for row in self.reader:
+            yield Example(row[0], row[2:])

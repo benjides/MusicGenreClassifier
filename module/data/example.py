@@ -13,7 +13,20 @@ class Example(object):
             data = json.load(jsonfile)
             self.data = data["lowlevel"]["mfcc"]["cov"]
             self.set_labels(labels)
-            print(self.mbid)
+
+    def __str__(self):
+        '''String representation.'''
+        return f'mbid {self.mbid} - labels {self.labels}'
+
+    def get(self):
+        """Gets the example attrs
+
+        Returns
+        ----------
+            example: tuple
+                Tuple cointaining the data and the example labels
+        """
+        return (self.data, self.data)
 
     def set_labels(self, labels):
         """Defines the labels of the example as hierarchical dictionary

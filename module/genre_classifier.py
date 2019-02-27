@@ -1,6 +1,6 @@
 """Genre classifier Module"""
 
-from base_classifier import BaseClassifier
+from module.base_classifier import BaseClassifier
 
 class GenreClassifier(BaseClassifier):
     """Class to define a hierachical genre classifier. """
