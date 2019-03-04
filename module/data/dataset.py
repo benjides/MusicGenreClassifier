@@ -22,4 +22,4 @@ class Dataset(object):
     def __iter__(self):
         '''Generator function.'''
         for row in self.reader:
-            yield Example(row[0], row[2:])
+            yield Example(row[0], row[2:]).get()
