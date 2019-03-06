@@ -1,4 +1,5 @@
 import json
+import numpy as np
 
 class Example(object):
     """Example class. """
@@ -11,12 +12,8 @@ class Example(object):
         self.labels = {}
         with open(self.root + mbid[:2] + '/' + mbid + '.json', 'r') as jsonfile:
             data = json.load(jsonfile)
-            self.data = data["lowlevel"]["mfcc"]["cov"]
-            self.set_labels(labels)
-
-    def __str__(self):
-        '''String representation.'''
-        return f'mbid {self.mbid} - labels {self.labels}'
+            self.data = self.set_data(data)
+            self.labels = self.set_labels(labels)
 
     def get(self):
         """Gets the example attrs
@@ -26,7 +23,16 @@ class Example(object):
             example: tuple
                 Tuple cointaining the data and the example labels
         """
-        return (self.data, self.data)
+        return (self.data, self.labels)
+
+    def set_data(self, data):
+        """Defines the data of the example
+
+        Parameters
+        ----------
+            data: raw data from the training
+        """
+        return np.array(data["lowlevel"]["mfcc"]["cov"]).flatten()
 
     def set_labels(self, labels):
         """Defines the labels of the example as hierarchical dictionary
@@ -35,8 +41,10 @@ class Example(object):
         ----------
             labels: string with the concatenated labels and sublabels
         """
+        l = {}
         for label in labels:
-            self.feed_label(label, self.labels)
+            self.feed_label(label, l)
+        return l
 
     def feed_label(self, label, labels):
         """Sets the labels recursively
