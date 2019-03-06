@@ -2,7 +2,7 @@
 import logging
 from module.logger import setup_logging
 
-def main(args):
+def main(args=None):
     """ Program bootstrap """
     setup_logging()
     logger = logging.getLogger(__name__)
