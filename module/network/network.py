@@ -36,7 +36,7 @@ class Network(object):
         model.add(Dense(128, input_dim=x_dim, activation='relu',
                         kernel_initializer='glorot_uniform'))
         model.add(Dropout(0.1))
-        model.add(Dense(64, activation='sigmoid',
+        model.add(Dense(64, activation='relu',
                         kernel_initializer='glorot_uniform'))
         model.add(Dense(y_dim, activation='sigmoid',
                         kernel_initializer='glorot_uniform'))
