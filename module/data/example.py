@@ -1,3 +1,4 @@
+""" Example Loader Module """
 import json
 import numpy as np
 

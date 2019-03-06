@@ -1,4 +1,4 @@
-import numpy as np
+""" BP MLL function loss """
 from keras import backend as K
 
 # bp mll loss function

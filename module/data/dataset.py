@@ -1,5 +1,5 @@
+""" Dataset Module """
 import csv
-import random
 import logging
 from module.data.example import Example
 

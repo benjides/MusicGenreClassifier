@@ -1,3 +1,4 @@
+""" Logger Interface Module """
 import os
 import json
 import logging.config
