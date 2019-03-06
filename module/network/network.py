@@ -5,7 +5,7 @@ from tensorflow import keras
 from keras.models import Sequential
 from keras.models import load_model
 from keras.layers import Dense, Dropout
-from module.bp_mll import bp_mll_loss
+from module.network.bp_mll import bp_mll_loss
 
 class Network(object):
     """Artificial Neural Network Classsifier. """

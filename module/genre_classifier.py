@@ -4,7 +4,7 @@ import logging
 import dill
 import numpy as np
 from sklearn.preprocessing import MultiLabelBinarizer
-from module.network import Network
+from module.network.network import Network
 
 class GenreClassifier(object):
     """Class to define a hierachical genre classifier. """
