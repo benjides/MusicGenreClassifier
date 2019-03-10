@@ -71,7 +71,6 @@ class GenreClassifier(object):
         network = Network()
         network.load_model(self.root+self.genre+str(self.index))
         result = network.classify(example)
-        print(result)
         return self.labels.inverse_transform(result)
         # TODO
         # labels = Classify it using the model
