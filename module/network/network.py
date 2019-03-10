@@ -33,10 +33,10 @@ class Network(object):
         """
         self.logger.info("Compiling model")
         model = Sequential()
-        model.add(Dense(128, input_dim=x_dim, activation='relu',
+        model.add(Dense(93, input_dim=x_dim, activation='relu',
                         kernel_initializer='glorot_uniform'))
         model.add(Dropout(0.1))
-        model.add(Dense(64, activation='relu',
+        model.add(Dense(37, activation='relu',
                         kernel_initializer='glorot_uniform'))
         model.add(Dense(y_dim, activation='sigmoid',
                         kernel_initializer='glorot_uniform'))

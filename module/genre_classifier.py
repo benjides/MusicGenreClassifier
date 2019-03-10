@@ -15,7 +15,7 @@ class GenreClassifier(object):
     def __init__(self, genre='main', index=0):
         self.genre = genre
         self.index = index
-        self.labels = []
+        self.labels = MultiLabelBinarizer()
         self.load_model()
 
     def train_model(self, data):
@@ -49,9 +49,7 @@ class GenreClassifier(object):
             x_train.append(example)
             y_train.append(label)
 
-        mlb = MultiLabelBinarizer()
-        y_train = mlb.fit_transform(y_train)
-        self.labels = list(mlb.classes_)
+        y_train = self.labels.fit_transform(y_train)
         x_train = np.array(x_train)
         self.logger.info('Data ready')
         network = Network()
@@ -72,7 +70,9 @@ class GenreClassifier(object):
         """
         network = Network()
         network.load_model(self.root+self.genre+str(self.index))
-        return network.classify(example)
+        result = network.classify(example)
+        print(result)
+        return self.labels.inverse_transform(result)
         # TODO
         # labels = Classify it using the model
         # For each obtained label in labels
