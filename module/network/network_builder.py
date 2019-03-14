@@ -2,6 +2,7 @@
 from keras.models import Sequential
 from keras.layers import Dense, Dropout
 from module.network.bp_mll import bp_mll_loss
+from module.config import Config
 
 LAYERS = {
     'Dense':    lambda args: Dense(**args),
@@ -12,7 +13,7 @@ LOSSES = {
     "bp_mll_loss": bp_mll_loss
 }
 
-def builder(x_dim, y_dim, config):
+def builder(x_dim, y_dim):
     """Network parser builder
 
     Genarates a Keras ANN architecture using a config file
@@ -26,6 +27,7 @@ def builder(x_dim, y_dim, config):
         model: Keras ANN
 
     """
+    config = Config.get()
     model = Sequential()
     config['layers'][0]['args']['input_dim'] = x_dim
     config['layers'][-1]['args']['units'] = y_dim
