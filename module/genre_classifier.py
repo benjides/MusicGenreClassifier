@@ -4,6 +4,7 @@ import logging
 import dill
 import numpy as np
 from sklearn.preprocessing import MultiLabelBinarizer
+from module.config import Config
 from module.network.network import Network
 
 class GenreClassifier(object):
@@ -122,7 +123,7 @@ class GenreClassifier(object):
             network: trained network
 
         """
-        model = self.root+self.genre+str(self.index)
+        model = self.get_model_name()
         dirname = os.path.dirname(model)
         if not os.path.exists(dirname):
             os.makedirs(dirname)
@@ -135,9 +136,22 @@ class GenreClassifier(object):
 
         Attempts to load this model (ONLY THIS OBJECT, the network is loaded somewhere else)
         """
-        model = self.root+self.genre+str(self.index)+'.pkl'
+        model = self.get_model_name()+'.pkl'
         if not os.path.exists(model):
             return
         with open(model, "rb") as f:
             model = dill.load(f)
             self.labels = model.labels
+
+    def get_model_name(self):
+        """Gets the model name
+
+        Obtains the mode name withouth the extension
+        to be used to store the GenreClassifier and Network objects
+
+        Returns
+        -------
+            model: string
+                Model name
+        """
+        return self.root+Config.get()['output']+'_'+self.genre+str(self.index)

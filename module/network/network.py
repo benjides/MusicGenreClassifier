@@ -5,14 +5,12 @@ from tensorflow import keras
 from keras.models import Sequential
 from keras.models import load_model
 from keras.layers import Dense, Dropout
+from module.network.network_builder import builder
 from module.network.bp_mll import bp_mll_loss
+from module.config import Config
 
 class Network(object):
     """Artificial Neural Network Classsifier. """
-
-    BATCH_SIZE = 62
-    EPOCHS = 350
-    VALIDATION_SPLIT = 0.1
 
     logger = logging.getLogger(__name__)
 
@@ -32,17 +30,7 @@ class Network(object):
             y_dim: dimension of the output (num of classes)
         """
         self.logger.info("Compiling model")
-        model = Sequential()
-        model.add(Dense(93, input_dim=x_dim, activation='relu',
-                        kernel_initializer='glorot_uniform'))
-        model.add(Dropout(0.1))
-        model.add(Dense(37, activation='relu',
-                        kernel_initializer='glorot_uniform'))
-        model.add(Dense(y_dim, activation='sigmoid',
-                        kernel_initializer='glorot_uniform'))
-        model.compile(loss=bp_mll_loss, optimizer='adagrad',
-                      metrics=['accuracy'])
-        self.model = model
+        self.model = builder(x_dim, y_dim)
 
     def train_model(self, x_train, y_train):
         """Trains the model
@@ -54,10 +42,7 @@ class Network(object):
             x_train: processed data for this subset
             y_train: processed label for each x
         """
-        self.model.fit(x_train, y_train,
-                       batch_size=self.BATCH_SIZE,
-                       epochs=self.EPOCHS,
-                       validation_split=self.VALIDATION_SPLIT)
+        self.model.fit(x_train, y_train, **Config.get()['train'])
 
     def classify(self, example):
         """Classifies an example and provides labels to it
