@@ -70,8 +70,8 @@ class GenreClassifier(object):
             labels: obtained labels for the provided example.
         """
         network = Network()
-        network.load_model(self.root+self.genre+str(self.index))
-        result = network.classify(example)
+        network.load_model(self.get_model_name())
+        result = network.classify(np.array([example]))
         return self.labels.inverse_transform(result)
         # TODO
         # labels = Classify it using the model
