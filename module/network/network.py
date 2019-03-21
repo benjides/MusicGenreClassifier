@@ -1,12 +1,9 @@
 """ ANN module """
 import logging
-import tensorflow as tf
-from tensorflow import keras
-from keras.models import Sequential
 from keras.models import load_model
-from keras.layers import Dense, Dropout
 from module.network.network_builder import builder
 from module.network.bp_mll import bp_mll_loss
+from module.network.hamming_distance import hamming_distance
 from module.config import Config
 
 class Network(object):
@@ -14,10 +11,8 @@ class Network(object):
 
     logger = logging.getLogger(__name__)
 
-    model = None
-
     def __init__(self):
-        self.logger.info("Init network")
+        self.model = None
 
     def compile_model(self, x_dim, y_dim):
         """Compiles the model
@@ -80,4 +75,8 @@ class Network(object):
         Returns
         -------
         """
-        self.model = load_model(model_name + '.h5', custom_objects={'bp_mll_loss': bp_mll_loss})
+        custom_objects = {
+            'bp_mll_loss': bp_mll_loss,
+            'hamming_distance': hamming_distance
+        }
+        self.model = load_model(model_name + '.h5', custom_objects=custom_objects)
