@@ -7,7 +7,7 @@ class Config(object):
     config = {}
 
     @staticmethod
-    def load_config(filename):
+    def load_config(filename='config.example'):
         """Config loader
 
         Loads the config file and makes it available to the whole project
@@ -35,4 +35,6 @@ class Config(object):
         -------
             config : the config dictionary
         """
+        if not any(Config.config):
+            Config.load_config()
         return Config.config

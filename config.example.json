@@ -1,0 +1,40 @@
+{
+    "dataset": {
+        "source": "lastfm"
+    },
+    "layers": [
+        {
+            "layer": "Dense",
+            "args": {
+                "units": 35,
+                "activation": "relu",
+                "kernel_initializer": "glorot_uniform"
+            }
+        },
+        {
+            "layer": "Dropout",
+            "args": {
+                "rate": 0.1
+            }
+        },
+        {
+            "layer": "Dense",
+            "args": {
+                "activation": "sigmoid",
+                "kernel_initializer": "glorot_uniform"
+            }
+        }
+    ],
+    "compile": {
+        "loss": "bp_mll_loss",
+        "optimizer": "adagrad",
+        "metrics": [
+            "hamming_distance"
+        ]
+    },
+    "train": {
+        "batch_size": 64,
+        "epochs": 500,
+        "validation_split": 0.1
+    }
+}
