@@ -16,6 +16,13 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('config', help="Config file to use", type=str)
+
+    parser.add_argument('-o', '--output', help="Output file to inspect",
+                        default=None, type=str, action='store')
+
+    parser.add_argument('-t', '--test', help="Runs the test of the computed model",
+                        default=False, action='store_true')
+
     return parser.parse_args()
 
 if __name__ == '__main__':
