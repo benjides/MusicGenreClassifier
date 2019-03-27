@@ -7,7 +7,7 @@ class Config(object):
     config = {}
 
     @staticmethod
-    def load_config(filename='config.example'):
+    def load_config(filename='config.example', output=None):
         """Config loader
 
         Loads the config file and makes it available to the whole project
@@ -15,13 +15,16 @@ class Config(object):
         Parameters
         ----------
             filename: configuration file (withouth the extension)
+            output: output filenames, it defaults to the filename
 
         Returns
         -------
         """
+        if output is None:
+            output = filename
         with open(filename + '.json') as f:
             config = json.load(f)
-            config['output'] = filename
+            config['output'] = output
             Config.config = config
 
     @staticmethod
