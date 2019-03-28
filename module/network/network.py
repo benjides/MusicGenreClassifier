@@ -39,6 +39,22 @@ class Network(object):
         """
         self.model.fit(x_train, y_train, **Config.get()['train'])
 
+    def train_generator(self, generator, steps_per_epoch):
+        """Trains the model
+
+        Fits the data using a generator
+
+        Parameters
+        ----------
+            generator: generator yielding training examples of BATCH_SIZE
+        """
+        self.logger.info("Training w/ generator")
+        self.model.fit_generator(
+            generator,
+            steps_per_epoch=steps_per_epoch,
+            epochs=Config.get()['train']['epochs']
+            )
+
     def classify(self, example):
         """Classifies an example and provides labels to it
 

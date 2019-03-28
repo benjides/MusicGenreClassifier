@@ -2,116 +2,74 @@
 import os
 import logging
 import dill
+import pandas as pd
 import numpy as np
-from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.preprocessing import LabelBinarizer
 from module.config import Config
 from module.network.network import Network
+from module.data.example import get_example
 
 class GenreClassifier(object):
     """Class to define a hierachical genre classifier. """
 
     logger = logging.getLogger(__name__)
-    root = 'models/'
 
-    def __init__(self, genre='main', index=0):
+    constants = {
+        'models': 'models/',
+        'data': {
+            'discogs': 'datasets/groundtruth/discogs-2017.tsv',
+            'lastfm': 'datasets/groundtruth/lastfm-2017.tsv',
+            'tagtraum': 'datasets/groundtruth/tagtraum-2017.tsv',
+        }
+    }
+
+    def __init__(self, dataframe=None, genre='main', index=0):
         self.genre = genre
         self.index = index
-        self.labels = MultiLabelBinarizer()
+        self.dataframe = self.load_dataframe(dataframe)
+        self.labels = self.load_labels()
         self.load_model()
 
-    def train_model(self, data):
+    def train_model(self):
         """Trains the model
 
         Trains the model and triggers the consequent classifiers hierarchically
 
         Parameters
         ----------
-            data: processed data for this subset
+            data: raw data for this subset
         """
-        refined_data = self.refine_data(data)
-        self.train(refined_data)
+        data, _ = get_example(self.dataframe.iloc[0])
+        network = Network()
+        network.compile_model(data.shape[0], len(self.labels.classes_))
+        steps_per_epoch = len(self.dataframe.index) // Config.get()['train']['batch_size']
+        network.train_generator(self.generator(), steps_per_epoch)
+        self.save_model(network)
         # for each sublabel in labels
             # divided_data = self.divide_data(data, label)
             # self.classifiers[label] = GenreClassifier(label, self.index + 1)
             # self.classifiers[label].train(divided_data)
 
-    def train(self, data):
-        """Trains the network
-
-        Trains the neural network
+    def classify(self, batch):
+        """Classifies a batch of examples and provides labels to it
 
         Parameters
         ----------
-            data: processed data for this subset
-        """
-        x_train, y_train = [], []
-        self.logger.info('Buffering data for %s at depth %i', self.genre, self.index)
-        for example, label in data:
-            x_train.append(example)
-            y_train.append(label)
-
-        y_train = self.labels.fit_transform(y_train)
-        x_train = np.array(x_train)
-        self.logger.info('Data ready')
-        network = Network()
-        network.compile_model(x_train.shape[1], y_train.shape[1])
-        network.train_model(np.array(x_train), y_train)
-        self.save_model(network)
-
-    def classify(self, example):
-        """Classifies an example and provides labels to it
-
-        Parameters
-        ----------
-            example: example to be classified
+            batch: examples to be classified
 
         Returns
         -------
-            labels: obtained labels for the provided example.
+            labels: obtained labels for the provided batch.
         """
         network = Network()
         network.load_model(self.get_model_name())
-        result = network.classify(np.array([example]))
+        result = network.classify(batch)
         return self.labels.inverse_transform(result)
         # TODO
         # labels = Classify it using the model
         # For each obtained label in labels
             # result[label] = self.classifier[label].classify(example)
         # return labels
-
-    def refine_data(self, dataset):
-        """Takes the provided data and adjusts it to the classifier standards
-
-        Parameters
-        ----------
-            data: raw data from upper level
-
-        Returns
-        -------
-            dataset: refined data ready to be processed by the classifier
-        """
-        # return ((data, list(label.keys())) for data, label in dataset)
-        for data, label in dataset:
-            yield (data, list(label.keys()))
-
-    def divide_data(self, dataset, label):
-        """Divides the data according to the provided label
-
-        Splits the data and divides it
-        to only take into account the examles which have the desired label in the hierarchy
-
-        Parameters
-        ----------
-            data: raw data from upper level
-            label: label to take into account
-
-        Returns
-        -------
-            data: divided data ready to be fed to the next classifier
-        """
-        for data, labels in dataset:
-            if labels[label]:
-                yield (data, labels[label])
 
     def save_model(self, network):
         """Save the computed model
@@ -131,6 +89,18 @@ class GenreClassifier(object):
             dill.dump(self, f, protocol=-1)
             network.save_model(model)
 
+    def load_dataframe(self, dataframe):
+        if dataframe is not None:
+            return dataframe
+
+        f = self.constants['data'][Config.get()['dataset']['source']]
+        return pd.read_csv(f, sep='\t', keep_default_na=False)
+
+    def load_labels(self):
+        labels = self.dataframe['genre1'].unique()
+        mlb = LabelBinarizer()
+        return mlb.fit(labels)
+
     def load_model(self):
         """Loads the model
 
@@ -142,6 +112,7 @@ class GenreClassifier(object):
         with open(model, "rb") as f:
             model = dill.load(f)
             self.labels = model.labels
+            self.dataframe = model.dataframe
 
     def get_model_name(self):
         """Gets the model name
@@ -154,4 +125,22 @@ class GenreClassifier(object):
             model: string
                 Model name
         """
-        return self.root+Config.get()['output']+'_'+self.genre+str(self.index)
+        return self.constants['models']+Config.get()['output']+'_'+self.genre+str(self.index)
+
+    def generator(self):
+        '''Generator function.'''
+        rows = self.dataframe.iterrows()
+        batch_size = Config.get()['train']['batch_size']
+        while True:
+            batch, labels = [], []
+            iterator = (next(rows) for _ in range(batch_size))
+            for _, row in iterator:
+                data, label = get_example(row)
+                #Discard unwanted genres and refine
+
+                batch.append(data)
+                labels.append(list(label.keys())[0])
+
+            batch = np.array(batch)
+            labels = self.labels.transform(labels)
+            yield (batch, labels)
