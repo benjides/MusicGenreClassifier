@@ -1,13 +1,13 @@
 """Network builder"""
-from keras.models import Sequential
-from keras.layers import Dense, Dropout
+import tensorflow as tf
+from tensorflow.keras import layers
 from module.config import Config
 from module.network.bp_mll import bp_mll_loss
 from module.network.hamming_distance import hamming_distance
 
 LAYERS = {
-    'Dense':    lambda args: Dense(**args),
-    'Dropout':  lambda args: Dropout(**args),
+    'Dense':    lambda args: layers.Dense(**args),
+    'Dropout':  lambda args: layers.Dropout(**args),
 }
 
 LOSSES = {
@@ -33,7 +33,7 @@ def builder(x_dim, y_dim):
 
     """
     config = Config.get()
-    model = Sequential()
+    model = tf.keras.Sequential()
     config['layers'][0]['args']['input_dim'] = x_dim
     config['layers'][-1]['args']['units'] = y_dim
     for layer in config['layers']:
