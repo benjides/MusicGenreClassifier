@@ -1,6 +1,8 @@
 """ ANN module """
 import logging
+import tensorflow as tf
 from keras.models import load_model
+from tensorflow.keras.callbacks import EarlyStopping, TensorBoard
 from module.network.network_builder import builder
 from module.network.bp_mll import bp_mll_loss
 from module.network.hamming_distance import hamming_distance
@@ -21,72 +23,116 @@ class Network(object):
 
         Parameters
         ----------
-            x_dim: dimension of the input
-            y_dim: dimension of the output (num of classes)
+            x_dim: int
+                dimension of the input
+            y_dim: int
+                dimension of the output (num of classes)
+        Returns
+        -------
         """
-        self.logger.info("Compiling model")
         self.model = builder(x_dim, y_dim)
 
-    def train_model(self, x_train, y_train):
-        """Trains the model
-
-        Fits the data using the established network architecture
-
-        Parameters
-        ----------
-            x_train: processed data for this subset
-            y_train: processed label for each x
-        """
-        self.model.fit(x_train, y_train, **Config.get()['train'])
-
-    def train_generator(self, generator, steps_per_epoch):
+    def train(self, name, training_generator, validation_generator, epochs, workers):
         """Trains the model
 
         Fits the data using a generator
 
         Parameters
         ----------
-            generator: generator yielding training examples of BATCH_SIZE
+            name: String
+                Model name to save the tensorboard logs
+            training_generator: Sequence
+                Generator yielding training examples
+            validation_generator: Sequence
+                Generator yielding validation examples
+            epochs: int
+                Number of epochs to do the training
+            workers: int
+                CPU workers to process the data on each epoch
+        Returns
+        -------
+            history: Model
+                Fitted model with the history training values
         """
-        self.logger.info("Training w/ generator")
-        self.model.fit_generator(
-            generator,
-            steps_per_epoch=steps_per_epoch,
-            epochs=Config.get()['train']['epochs']
-            )
+        callbacks = [
+            EarlyStopping(patience=5, monitor='loss'),
+            TensorBoard(log_dir="logs/{}".format(name))
+        ]
+        return self.model.fit_generator(
+            generator=training_generator,
+            validation_data=validation_generator,
+            epochs=epochs,
+            use_multiprocessing=True,
+            workers=workers,
+            callbacks=callbacks
+        )
+
+    def evaluate(self, test_generator):
+        """Evaluates the model
+
+        Fits the data using a generator
+
+        Parameters
+        ----------
+            test_generator: Sequence
+                generator yielding test examples
+        Returns
+        -------
+            evaluation_metrics: list
+                List containing the values of the loss and the metrics selected during the compile phase for this generator
+        """
+        return self.model.evaluate_generator(test_generator)
 
     def classify(self, example):
         """Classifies an example and provides labels to it
 
         Parameters
         ----------
-            example: example to be classified
+            example: np.array
+                Example to be classified
 
         Returns
         -------
-            labels: obtained labels for the provided example.
+            probs: np.array 
+                Obtained labels for the provided example. (Prediction prob per class)
         """
         return self.model.predict(example)
+
+    def classify_generator(self, generator):
+        """Classifies an example and provides labels to it
+
+        Parameters
+        ----------
+            example: np.array
+                Example to be classified
+
+        Returns
+        -------
+            probs: np.array 
+                Obtained labels for the provided example. (Prediction prob per class)
+        """
+        return self.model.predict_generator(generator)
 
     def save_model(self, model_name):
         """Saves the model to disk
 
         Parameters
         ----------
-            model_name: name of the model to save
+            model_name: str
+                name of the model to save
 
         Returns
         -------
         """
         self.model.save(model_name + '.h5')
-        self.logger.info('Saved trained model at %s ', model_name)
 
     def load_model(self, model_name):
         """Loads the model from disk
 
         Parameters
         ----------
-            model_name: name of the model to load
+            model_name: str
+                name of the model to load
 
         Returns
         -------
@@ -95,4 +141,4 @@ class Network(object):
             'bp_mll_loss': bp_mll_loss,
             'hamming_distance': hamming_distance
         }
-        self.model = load_model(model_name + '.h5', custom_objects=custom_objects)
+        self.model = tf.keras.models.load_model(model_name + '.h5', custom_objects=custom_objects)

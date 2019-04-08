@@ -2,11 +2,14 @@
 import os
 import logging
 import dill
+import json
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import LabelBinarizer
+from sklearn.preprocessing import MultiLabelBinarizer, binarize
 from module.config import Config
 from module.network.network import Network
+from module.data.dataset import Dataset
+from module.data.split_dataset import split_dataset
 from module.data.example import get_example
 
 class GenreClassifier(object):
@@ -41,9 +44,40 @@ class GenreClassifier(object):
         """
         data, _ = get_example(self.dataframe.iloc[0])
         network = Network()
+        self.logger.info("Compiling Model")
         network.compile_model(data.shape[0], len(self.labels.classes_))
-        steps_per_epoch = len(self.dataframe.index) // Config.get()['train']['batch_size']
-        network.train_generator(self.generator(), steps_per_epoch)
+
+        train, test, validation = split_dataset(self.dataframe, **Config.get()['dataset']['split'])
+
+        training_generator = Dataset(
+            train,
+            self.labels,
+            batch_size=Config.get()['train']['batch_size'],
+        )
+
+        validation_generator = Dataset(
+            validation,
+            self.labels,
+            batch_size=Config.get()['train']['batch_size'],
+        )
+
+        self.logger.info('Training Model : %s ', self.get_model_name())
+        network.train(
+            name=self.get_model_name(),
+            training_generator=training_generator,
+            validation_generator=validation_generator,
+            epochs=Config.get()['train']['epochs'],
+            workers=Config.get()['train']['workers']
+        )
+
+        test_generator = Dataset(
+            test,
+            self.labels,
+            batch_size=Config.get()['train']['batch_size'],
+        )
+
+        self.logger.info(network.evaluate(test_generator))
+
         self.save_model(network)
         # for each sublabel in labels
             # divided_data = self.divide_data(data, label)
@@ -62,8 +96,9 @@ class GenreClassifier(object):
             labels: obtained labels for the provided batch.
         """
         network = Network()
-        network.load_model(self.get_model_name())
+        network.load_model(self.get_model_path())
         result = network.classify(batch)
+        result = binarize(result, Config.get()['dataset']['threshold']).astype(int)
         return self.labels.inverse_transform(result)
         # TODO
         # labels = Classify it using the model
@@ -81,24 +116,32 @@ class GenreClassifier(object):
             network: trained network
 
         """
-        model = self.get_model_name()
+        model = self.get_model_path()
         dirname = os.path.dirname(model)
         if not os.path.exists(dirname):
             os.makedirs(dirname)
         with open(model + '.pkl', 'wb') as f:
             dill.dump(self, f, protocol=-1)
-            network.save_model(model)
+
+        with open(model + '.json', 'w') as f:
+            json.dump(Config.get(), f, indent=4)
+
+        network.save_model(model)
+        self.logger.info('Saved trained model at %s ', model)
 
     def load_dataframe(self, dataframe):
         if dataframe is not None:
             return dataframe
 
         f = self.constants['data'][Config.get()['dataset']['source']]
-        return pd.read_csv(f, sep='\t', keep_default_na=False)
+        dataframe = pd.read_csv(f, sep='\t', keep_default_na=False)
+        if Config.get()['dataset']['records']:
+            return dataframe.sample(Config.get()['dataset']['records'])
+        return dataframe
 
     def load_labels(self):
-        labels = self.dataframe['genre1'].unique()
-        mlb = LabelBinarizer()
+        labels = [[label] for label in self.dataframe['genre1'].unique()]
+        mlb = MultiLabelBinarizer()
         return mlb.fit(labels)
 
     def load_model(self):
@@ -106,13 +149,26 @@ class GenreClassifier(object):
 
         Attempts to load this model (ONLY THIS OBJECT, the network is loaded somewhere else)
         """
-        model = self.get_model_name()+'.pkl'
+        model = self.get_model_path()+'.pkl'
         if not os.path.exists(model):
             return
         with open(model, "rb") as f:
             model = dill.load(f)
             self.labels = model.labels
             self.dataframe = model.dataframe
+
+    def get_model_path(self):
+        """Gets the model path+name
+
+        Obtains the model as a path name withouth the extension
+        to be used to store the GenreClassifier and Network objects
+
+        Returns
+        -------
+            model: string
+                Model name
+        """
+        return self.constants['models']+self.get_model_name()
 
     def get_model_name(self):
         """Gets the model name
@@ -125,22 +181,4 @@ class GenreClassifier(object):
             model: string
                 Model name
         """
-        return self.constants['models']+Config.get()['output']+'_'+self.genre+str(self.index)
-
-    def generator(self):
-        '''Generator function.'''
-        rows = self.dataframe.iterrows()
-        batch_size = Config.get()['train']['batch_size']
-        while True:
-            batch, labels = [], []
-            iterator = (next(rows) for _ in range(batch_size))
-            for _, row in iterator:
-                data, label = get_example(row)
-                #Discard unwanted genres and refine
-
-                batch.append(data)
-                labels.append(list(label.keys())[0])
-
-            batch = np.array(batch)
-            labels = self.labels.transform(labels)
-            yield (batch, labels)
+        return Config.get()['output']+'_'+self.genre+str(self.index)
