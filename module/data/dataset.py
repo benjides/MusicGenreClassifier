@@ -1,15 +1,15 @@
 import pandas as pd
 import numpy as np
 from math import ceil
-from tensorflow.keras.utils import Sequence
-from module.data.example import get_example
+from keras.utils import Sequence
+from module.data.example import get_input
 
 class Dataset(Sequence):
     'Generates data for Keras'
-    def __init__(self, dataframe, mlb, batch_size=32,):
+    def __init__(self, dataframe, genre, batch_size=32):
         'Initialization'
         self.dataframe = dataframe
-        self.mlb = mlb
+        self.genre = genre
         self.batch_size = batch_size
 
     def __len__(self):
@@ -26,12 +26,12 @@ class Dataset(Sequence):
         'Generates data containing batch_size samples'
         batch, labels = [], []
         for _, row in rows.iterrows():
-            data, label = get_example(row)
-            #Discard unwanted genres and refine
+            
+            data = get_input(row['mbid'])
+            label = 1 if row['genre'] == self.genre else 0
 
             batch.append(data)
-            labels.append(label.keys())
+            labels.append(label)
 
         batch = np.array(batch)
-        labels = self.mlb.transform(labels)
         return (batch, labels)

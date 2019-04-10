@@ -5,12 +5,13 @@ import dill
 import json
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import MultiLabelBinarizer, binarize
+from sklearn.preprocessing import binarize
 from module.config import Config
 from module.network.network import Network
 from module.data.dataset import Dataset
+from module.data.example import get_input
+from module.database.database import Database
 from module.data.split_dataset import split_dataset
-from module.data.example import get_example
 
 class GenreClassifier(object):
     """Class to define a hierachical genre classifier. """
@@ -20,17 +21,16 @@ class GenreClassifier(object):
     constants = {
         'models': 'models/',
         'data': {
-            'discogs': 'datasets/groundtruth/discogs-2017.tsv',
-            'lastfm': 'datasets/groundtruth/lastfm-2017.tsv',
-            'tagtraum': 'datasets/groundtruth/tagtraum-2017.tsv',
+            'discogs': 'E:\datasets/groundtruth/discogs-2017.tsv',
+            'lastfm': 'E:\datasets/groundtruth/lastfm-2017.tsv',
+            'tagtraum': 'E:\datasets/groundtruth/tagtraum-2017.tsv',
         }
     }
 
-    def __init__(self, dataframe=None, genre='main', index=0):
+    def __init__(self, genre=None, index=0):
         self.genre = genre
         self.index = index
-        self.dataframe = self.load_dataframe(dataframe)
-        self.labels = self.load_labels()
+        self.dataframe = self.load_dataframe()
         self.load_model()
 
     def train_model(self):
@@ -42,10 +42,10 @@ class GenreClassifier(object):
         ----------
             data: raw data for this subset
         """
-        data, _ = get_example(self.dataframe.iloc[0])
+        data = get_input(self.dataframe.iloc[0]['mbid'])
         network = Network()
         self.logger.info("Compiling Model")
-        network.compile_model(data.shape[0], len(self.labels.classes_))
+        network.compile_model(data.shape[0], 1)
 
         train, test, validation = split_dataset(self.dataframe, **Config.get()['dataset']['split'])
 
@@ -98,7 +98,7 @@ class GenreClassifier(object):
         network = Network()
         network.load_model(self.get_model_path())
         result = network.classify(batch)
-        result = binarize(result, Config.get()['dataset']['threshold']).astype(int)
+        result = binarize(result, 0.3).astype(int)
         return self.labels.inverse_transform(result)
         # TODO
         # labels = Classify it using the model
@@ -118,6 +118,7 @@ class GenreClassifier(object):
         """
         model = self.get_model_path()
         dirname = os.path.dirname(model)
+        network.save_model(model)
         if not os.path.exists(dirname):
             os.makedirs(dirname)
         with open(model + '.pkl', 'wb') as f:
@@ -126,23 +127,58 @@ class GenreClassifier(object):
         with open(model + '.json', 'w') as f:
             json.dump(Config.get(), f, indent=4)
 
-        network.save_model(model)
         self.logger.info('Saved trained model at %s ', model)
 
-    def load_dataframe(self, dataframe):
-        if dataframe is not None:
-            return dataframe
+    def load_dataframe(self):
+        
+        db = Database('genre_classifier', Config.get()['dataset']['source'])
+    
+        positives = db.run_aggregate([
+            {
+                '$match': {
+                    'genres.name': self.genre
+            }
+            }, {
+                '$group': {
+                    '_id': '$release', 
+                    'mbid': {
+                        '$last': '$mbid'
+                    }
+                }
+            }, {
+                '$project': {
+                    '_id': 0, 
+                    'mbid': 1, 
+                    'genre': self.genre
+                }
+            }
+        ])
+        negatives = db.run_aggregate([
+            {
+                '$match': {
+                    'genres.name': {
+                        '$ne': self.genre
+                    }
+                }
+            }, {
+                '$group': {
+                    '_id': '$release', 
+                    'mbid': {
+                        '$last': '$mbid'
+                    }
+                }
+            }, {
+                '$project': {
+                    '_id': 0, 
+                    'mbid': 1, 
+                    'genre':  'other'
+                }
+            }, {
+                '$limit': len(list(positives))
+            }
+        ])
+        return pd.DataFrame(list(positives)).add((list(negatives)))
 
-        f = self.constants['data'][Config.get()['dataset']['source']]
-        dataframe = pd.read_csv(f, sep='\t', keep_default_na=False)
-        if Config.get()['dataset']['records']:
-            return dataframe.sample(Config.get()['dataset']['records'])
-        return dataframe
-
-    def load_labels(self):
-        labels = [[label] for label in self.dataframe['genre1'].unique()]
-        mlb = MultiLabelBinarizer()
-        return mlb.fit(labels)
 
     def load_model(self):
         """Loads the model

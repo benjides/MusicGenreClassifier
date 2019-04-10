@@ -2,7 +2,7 @@
 import json
 import numpy as np
 
-root = 'datasets/train/'
+root = 'E:\datasets/train/'
 separator = '---'
 
 def get_example(row):
@@ -10,6 +10,13 @@ def get_example(row):
     mbid = row[0]
     labels = row[2:].tolist()
     return get(mbid, labels)
+
+
+def get_input(mbid):
+    """Gets the input for an example"""
+    with open(root + mbid[:2] + '/' + mbid + '.json', 'r') as jsonfile:
+        data = json.load(jsonfile)
+        return get_data(data)
 
 def get(mbid, labels):
     """Gets the values for an example"""
@@ -26,7 +33,8 @@ def get_data(data):
     ----------
         data: raw json from the training
     """
-    return np.array(data["lowlevel"]["mfcc"]["mean"])
+    x_train = data["lowlevel"]["gfcc"]["mean"] + data["lowlevel"]["mfcc"]["mean"] + data["lowlevel"]["erbbands"]["mean"] + data["lowlevel"]["erbbands"]["mean"]
+    return np.array(x_train)
 
 def get_labels(labels):
     """Defines the labels of the example as hierarchical dictionary
