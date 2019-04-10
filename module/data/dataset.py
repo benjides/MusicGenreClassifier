@@ -30,7 +30,7 @@ class Dataset(Sequence):
             #Discard unwanted genres and refine
 
             batch.append(data)
-            labels.append(list(label.keys()))
+            labels.append(label.keys())
 
         batch = np.array(batch)
         labels = self.mlb.transform(labels)
