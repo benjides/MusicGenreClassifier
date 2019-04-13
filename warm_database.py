@@ -2,12 +2,13 @@
 import argparse
 import time
 import pandas as pd
+from module.config import Config
 from module.database.database import Database
 
 datasets = {
-    'discogs': 'datasets/groundtruth/discogs-2017.tsv',
-    'lastfm': 'datasets/groundtruth/lastfm-2017.tsv',
-    'tagtraum': 'datasets/groundtruth/tagtraum-2017.tsv',
+    'discogs': 'groundtruth/discogs-2017.tsv',
+    'lastfm': 'groundtruth/lastfm-2017.tsv',
+    'tagtraum': 'groundtruth/tagtraum-2017.tsv',
 }
 
 def parse_args():
@@ -41,8 +42,9 @@ def warmer(dataset):
     """
     start = time.time()
     f = datasets[dataset]
+    f = Config.get()['dataset']['root'] + f
     master_record = pd.read_csv(f, sep='\t', keep_default_na=False)
-    db = Database(database='genre_classifier', collection=dataset)
+    db = Database(database=Config.get()['dataset']['database'], collection=dataset)
     for _, row in master_record.iterrows():
         doc = {
             'mbid': row['recordingmbid'],
@@ -84,4 +86,5 @@ def consume_label(array, output):
     
 if __name__ == '__main__':
     args = parse_args()
+    Config.load_config('config')
     warmer(**vars(args))
