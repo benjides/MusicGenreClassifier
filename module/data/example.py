@@ -1,8 +1,9 @@
 """ Example Loader Module """
 import json
 import numpy as np
+from module.config import Config
 
-root = 'datasets/train/'
+root = Config.get()['dataset']['root']+'train/'
 separator = '---'
 
 def get_example(row):
@@ -11,13 +12,15 @@ def get_example(row):
     labels = row[2:].tolist()
     return get(mbid, labels)
 
-def get(mbid, labels):
-    """Gets the values for an example"""
+def get_input(mbid):
+    """Gets the input for an example"""
     with open(root + mbid[:2] + '/' + mbid + '.json', 'r') as jsonfile:
         data = json.load(jsonfile)
-        data = get_data(data)
-        labels = get_labels(labels)
-        return (data, labels)
+        return get_data(data)
+
+def get(mbid, labels):
+    """Gets the values for an example"""
+    return (get_input(mbid), get_labels(labels))
 
 def get_data(data):
     """Defines the data of the example
@@ -26,7 +29,8 @@ def get_data(data):
     ----------
         data: raw json from the training
     """
-    return np.array(data["lowlevel"]["mfcc"]["mean"])
+    x_train = data["lowlevel"]["gfcc"]["mean"]
+    return np.array(x_train)
 
 def get_labels(labels):
     """Defines the labels of the example as hierarchical dictionary
