@@ -4,4 +4,5 @@ venv
 *.log
 datasets
 models
+reports
 logs
