@@ -4,34 +4,32 @@ import logging
 import dill
 import json
 import pandas as pd
-import numpy as np
-from sklearn.preprocessing import MultiLabelBinarizer, binarize
+import numpy as np 
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
+from sklearn.preprocessing import binarize
 from module.config import Config
-from module.network.network import Network
 from module.data.dataset import Dataset
+from module.data.data_generation import data_generation
+from module.data.example import get_input
+from module.data.genres import get_genres
+from module.data.samples import get_samples
 from module.data.split_dataset import split_dataset
-from module.data.example import get_example
+from module.database.aggregator import Aggregator
+from module.database.database import Database
+from module.network.network import Network
 
 class GenreClassifier(object):
     """Class to define a hierachical genre classifier. """
 
     logger = logging.getLogger(__name__)
+    models = 'models/'
+    reports = 'reports/'
 
-    constants = {
-        'models': 'models/',
-        'data': {
-            'discogs': 'datasets/groundtruth/discogs-2017.tsv',
-            'lastfm': 'datasets/groundtruth/lastfm-2017.tsv',
-            'tagtraum': 'datasets/groundtruth/tagtraum-2017.tsv',
-        }
-    }
-
-    def __init__(self, dataframe=None, genre='main', index=0):
+    def __init__(self, path='name', genre=None, index=0):
+        self.path = path
         self.genre = genre
         self.index = index
-        self.dataframe = self.load_dataframe(dataframe)
-        self.labels = self.load_labels()
-        self.load_model()
+        self.genres = self.get_genres()
 
     def train_model(self):
         """Trains the model
@@ -40,28 +38,52 @@ class GenreClassifier(object):
 
         Parameters
         ----------
-            data: raw data for this subset
+        Returns
+        -------
         """
-        data, _ = get_example(self.dataframe.iloc[0])
+        if self.genre is not None:
+            self.train()
+        
+        for genre in self.genres:
+            g = GenreClassifier(
+                path='genres.'+self.path,
+                genre=genre['_id'],
+                index=self.index + 1
+            )
+            g.train_model()
+
+    def train(self):
+        """Trains the model
+
+        Trains the model
+
+        Parameters
+        ----------
+        Returns
+        -------
+        """
+
+        dataframe = self.load_dataframe()
+        data = get_input(dataframe.iloc[0]['mbid'])
         network = Network()
         self.logger.info("Compiling Model")
-        network.compile_model(data.shape[0], len(self.labels.classes_))
+        network.compile_model(data.shape[0], 1)
 
-        train, test, validation = split_dataset(self.dataframe, **Config.get()['dataset']['split'])
+        
+        train, test, validation = split_dataset(dataframe, **Config.get()['dataset']['split'])
 
         training_generator = Dataset(
             train,
-            self.labels,
             batch_size=Config.get()['train']['batch_size'],
         )
 
         validation_generator = Dataset(
             validation,
-            self.labels,
             batch_size=Config.get()['train']['batch_size'],
         )
 
         self.logger.info('Training Model : %s ', self.get_model_name())
+
         network.train(
             name=self.get_model_name(),
             training_generator=training_generator,
@@ -70,19 +92,18 @@ class GenreClassifier(object):
             workers=Config.get()['train']['workers']
         )
 
-        test_generator = Dataset(
-            test,
-            self.labels,
-            batch_size=Config.get()['train']['batch_size'],
-        )
-
-        self.logger.info(network.evaluate(test_generator))
+        self.evaluate_model(test)
 
         self.save_model(network)
-        # for each sublabel in labels
-            # divided_data = self.divide_data(data, label)
-            # self.classifiers[label] = GenreClassifier(label, self.index + 1)
-            # self.classifiers[label].train(divided_data)
+
+    def evaluate_model(self, dataframe):
+        x, y_true = data_generation(dataframe)
+        y_pred = self.classify(x)
+        model = self.get_model_name()
+        with open(self.reports + model + '.txt', 'w') as f:
+            f.write("Accuracy (train) for %s: %0.1f%% \n" % (model, accuracy_score(y_true, y_pred) * 100))
+            # f.write(confusion_matrix(y_true, y_pred)+"\n")
+            f.write(classification_report(y_true, y_pred)+"\n")
 
     def classify(self, batch):
         """Classifies a batch of examples and provides labels to it
@@ -97,9 +118,7 @@ class GenreClassifier(object):
         """
         network = Network()
         network.load_model(self.get_model_path())
-        result = network.classify(batch)
-        result = binarize(result, Config.get()['dataset']['threshold']).astype(int)
-        return self.labels.inverse_transform(result)
+        return binarize(network.classify(batch), Config.get()['dataset']['threshold'])
         # TODO
         # labels = Classify it using the model
         # For each obtained label in labels
@@ -120,29 +139,27 @@ class GenreClassifier(object):
         dirname = os.path.dirname(model)
         if not os.path.exists(dirname):
             os.makedirs(dirname)
+
         with open(model + '.pkl', 'wb') as f:
             dill.dump(self, f, protocol=-1)
 
         with open(model + '.json', 'w') as f:
             json.dump(Config.get(), f, indent=4)
 
-        network.save_model(model)
+        try:
+            network.save_model(model)
+        except:
+            pass
+        
         self.logger.info('Saved trained model at %s ', model)
 
-    def load_dataframe(self, dataframe):
-        if dataframe is not None:
-            return dataframe
+    def load_dataframe(self):
+        db = Database(Config.get()['dataset']['database'], Config.get()['dataset']['source'])
+        return get_samples(db, self.path, self.genre)
 
-        f = self.constants['data'][Config.get()['dataset']['source']]
-        dataframe = pd.read_csv(f, sep='\t', keep_default_na=False)
-        if Config.get()['dataset']['records']:
-            return dataframe.sample(Config.get()['dataset']['records'])
-        return dataframe
-
-    def load_labels(self):
-        labels = [[label] for label in self.dataframe['genre1'].unique()]
-        mlb = MultiLabelBinarizer()
-        return mlb.fit(labels)
+    def get_genres(self):
+        db = Database(Config.get()['dataset']['database'], Config.get()['dataset']['source'])
+        return get_genres(db, self.path, self.genre)
 
     def load_model(self):
         """Loads the model
@@ -154,8 +171,10 @@ class GenreClassifier(object):
             return
         with open(model, "rb") as f:
             model = dill.load(f)
-            self.labels = model.labels
-            self.dataframe = model.dataframe
+            self.path = model.path
+            self.genre = model.genre
+            self.index = model.index
+            self.genres = model.genres
 
     def get_model_path(self):
         """Gets the model path+name
@@ -168,7 +187,7 @@ class GenreClassifier(object):
             model: string
                 Model name
         """
-        return self.constants['models']+self.get_model_name()
+        return self.models+self.get_model_name()
 
     def get_model_name(self):
         """Gets the model name
