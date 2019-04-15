@@ -86,5 +86,5 @@ def consume_label(array, output):
     
 if __name__ == '__main__':
     args = parse_args()
-    Config.load_config('config')
+    Config.load_config()
     warmer(**vars(args))
