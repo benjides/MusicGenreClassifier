@@ -1,5 +1,6 @@
 """Database Module Module"""
 from pymongo import MongoClient
+from module.database.aggregator import Aggregator
 
 class Database(object):
     'Initializes the connection'
@@ -27,6 +28,17 @@ class Database(object):
         coll.create_index("mbid", unique=True)
         return coll
 
+    def set_collection(self, collection):
+        """Sets the collection to use
+
+        Parameters
+        ----------
+            collection: str
+                collection to use
+        Returns
+        -------
+        """
+        self.collection = self.load_collection(collection)
 
     def insert(self, document):
         """Inserts a document into the collection
@@ -56,17 +68,30 @@ class Database(object):
         """
         return self.collection.insert_many(documents).inserted_ids
 
-    
-    def run_aggregate(self, pipeline):
+    def run_aggregate(self, aggregator):
+        """Builds and runs the Aggregator query
+
+        Parameters
+        ----------
+            pipeline: Aggregator
+                Aggregator query
+        Returns
+        -------
+            cursor: CommandCursor
+                MongoDB cursor containing the results
+        """
+        return self.run_pipeline(aggregator.build())
+
+    def run_pipeline(self, pipeline):
         """Runs the query pipeline
 
         Parameters
         ----------
-            pipeline: list(dict())
-                List containing the pipeline stages in MQL
+            pipeline: list(dict())|Aggregator
+                documents to insert
         Returns
         -------
-            aggregate: cursor
-                MongoDB cursor object
+            cursor: CommandCursor
+                MongoDB cursor containing the results
         """
         return self.collection.aggregate(pipeline)

@@ -1,14 +1,31 @@
 {
     "dataset": {
-        "source": "lastfm"
+        "root": "datasets/",
+        "database": "genre_classifier",
+        "source": "lastfm",
+        "records": 5000,
+        "split": {
+            "train": 0.7,
+            "validation": 0.1,
+            "test": 0.2
+        },
+        "threshold": 0.5
     },
     "layers": [
         {
             "layer": "Dense",
             "args": {
-                "units": 35,
+                "units": 128,
                 "activation": "relu",
-                "kernel_initializer": "glorot_uniform"
+                "kernel_initializer": "normal"
+            }
+        },
+        {
+            "layer": "Dense",
+            "args": {
+                "units": 64,
+                "activation": "relu",
+                "kernel_initializer": "normal"
             }
         },
         {
@@ -20,21 +37,27 @@
         {
             "layer": "Dense",
             "args": {
+                "units": 32,
+                "activation": "relu",
+                "kernel_initializer": "normal"
+            }
+        },
+        {
+            "layer": "Dense",
+            "args": {
                 "activation": "sigmoid",
-                "kernel_initializer": "glorot_uniform"
+                "kernel_initializer": "normal"
             }
         }
     ],
     "compile": {
-        "loss": "bp_mll_loss",
-        "optimizer": "adagrad",
-        "metrics": [
-            "hamming_distance"
-        ]
+        "loss": "binary_crossentropy",
+        "optimizer": "adadelta",
+        "metrics": ["accuracy"]
     },
     "train": {
-        "batch_size": 64,
-        "epochs": 500,
-        "validation_split": 0.1
+        "batch_size": 256,
+        "epochs": 150,
+        "workers": 4
     }
 }

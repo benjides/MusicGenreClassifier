@@ -15,8 +15,6 @@ def parse_args():
     """
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('config', help="Config file to use", type=str)
-
     parser.add_argument('-o', '--output', help="Output file to inspect",
                         default=None, type=str, action='store')
 
