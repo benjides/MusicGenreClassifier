@@ -126,6 +126,27 @@ class Aggregator(object):
         )
         return self
 
+    def sample(self, documents):
+        """Provide the number of documents to limit.
+
+        Parameters
+        ----------
+            documents: int
+                documents to sample
+        Returns
+        -------
+            self: Aggregator
+                Aggregator builder interface
+        """
+        self.pipeline.append(
+            {
+                '$sample': {
+                    'size': documents
+                }
+            }
+        )
+        return self
+    
     def build(self):
         """Returns the pipeline ready to be ran
 
