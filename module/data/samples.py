@@ -1,29 +1,36 @@
 import pandas as pd
+import json
 from module.database.aggregator import Aggregator
 
 def get_samples(db, path, genre):
+    query = Aggregator()
 
-    query = Aggregator() \
-        .match(path, genre) \
-        .group("$release", mbid={"$last": "$mbid"}) \
-        .project(_id=0, mbid=1, genre='1')
+    query.group(
+        "$release",
+        mbid={
+            "$first": "$mbid"
+        },
+        genres={
+            "$first": "$genres"
+        }
+    )
+
+    agg = "$genres"
+    for _ in range(path.count('.')):
+        query.unwind(agg)
+        agg += ".genres"
+
+    if genre is not None:
+        query.match(path, genre)
+        
+    query.project(
+        _id=0,
+        mbid=1,
+        genre="$genres."+path
+    )
     
-    positives = list(db.run_aggregate(query))
+    documents = db.run_aggregate(query)
+    return pd.DataFrame.from_records(documents)
 
-    query = Aggregator() \
-        .match("genres.name", {'$ne': genre}) \
-        .group("$release", mbid={"$last": "$mbid"}) \
-        .project(_id=0, mbid=1, genre='0') \
-        .limit(len(positives))
-
-    negatives = list(db.run_aggregate(query))
-
-    return pd.DataFrame(positives + negatives)
-
-def get_random(db, records):
-    
-    query = Aggregator().sample(records)
-
-    rows = db.run_aggregate(query)
-
-    return pd.DataFrame.from_records(rows)
+def get_random(db, path, genre, records):
+    return get_samples(db, path, genre).sample(records)

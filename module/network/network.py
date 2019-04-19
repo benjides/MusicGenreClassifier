@@ -124,7 +124,10 @@ class Network(object):
         Returns
         -------
         """
-        self.model.save(model_name + '.h5')
+        try:
+            self.model.save(model_name + '.h5')
+        except:
+            pass
 
     def load_model(self, model_name):
         """Loads the model from disk

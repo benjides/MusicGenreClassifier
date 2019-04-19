@@ -30,5 +30,5 @@ def train(classifier):
 def test(classifier):
     """ Test phase """
     db = Database(Config.get()['dataset']['database'], Config.get()['dataset']['source'])
-    samples = get_random(db, Config.get()['dataset']['records'])
+    samples = get_random(db, classifier.path, classifier.genre, Config.get()['dataset']['records'])
     classifier.evaluate_model(samples)

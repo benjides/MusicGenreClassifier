@@ -6,7 +6,7 @@ import json
 import pandas as pd
 import numpy as np 
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
-from sklearn.preprocessing import binarize
+from sklearn.preprocessing import MultiLabelBinarizer, binarize
 from module.config import Config
 from module.data.dataset import Dataset
 from module.data.data_generation import data_generation
@@ -30,6 +30,7 @@ class GenreClassifier(object):
         self.genre = genre
         self.index = index
         self.genres = self.get_genres()
+        self.mlb = self.set_mlb()
 
     def train_model(self):
         """Trains the model
@@ -41,16 +42,16 @@ class GenreClassifier(object):
         Returns
         -------
         """
-        if self.genre is not None:
-            self.train()
+        #if self.genre is not None:
+        self.train()
         
-        for genre in self.genres:
-            g = GenreClassifier(
-                path='genres.'+self.path,
-                genre=genre['_id'],
-                index=self.index + 1
-            )
-            g.train_model()
+        # for genre in self.genres:
+        #     g = GenreClassifier(
+        #         path='genres.'+self.path,
+        #         genre=genre['_id'],
+        #         index=self.index + 1
+        #     )
+        #     g.train_model()
 
     def train(self):
         """Trains the model
@@ -67,18 +68,20 @@ class GenreClassifier(object):
         data = get_input(dataframe.iloc[0]['mbid'])
         network = Network()
         self.logger.info("Compiling Model")
-        network.compile_model(data.shape[0], 1)
+        network.compile_model(data.shape[0], len(self.genres))
 
         
         train, test, validation = split_dataset(dataframe, **Config.get()['dataset']['split'])
 
         training_generator = Dataset(
             train,
+            self.mlb,
             batch_size=Config.get()['train']['batch_size'],
         )
 
         validation_generator = Dataset(
             validation,
+            self.mlb,
             batch_size=Config.get()['train']['batch_size'],
         )
 
@@ -92,13 +95,14 @@ class GenreClassifier(object):
             workers=Config.get()['train']['workers']
         )
 
-        self.evaluate_model(test)
-
         self.save_model(network)
 
+        self.evaluate_model(test)
+
     def evaluate_model(self, dataframe):
-        x, y_true = data_generation(dataframe)
+        x, y_true = data_generation(dataframe, self.mlb)
         y_pred = self.classify(x)
+        y_pred = binarize(y_pred, Config.get()['dataset']['threshold']).astype(int)
         model = self.get_model_name()
         with open(self.reports + model + '.txt', 'w') as f:
             f.write("Accuracy (train) for %s: %0.1f%% \n" % (model, accuracy_score(y_true, y_pred) * 100))
@@ -147,10 +151,7 @@ class GenreClassifier(object):
         with open(model + '.json', 'w') as f:
             json.dump(Config.get(), f, indent=4)
 
-        try:
-            network.save_model(model)
-        except:
-            pass
+        network.save_model(model)
         
         self.logger.info('Saved trained model at %s ', model)
 
@@ -161,6 +162,11 @@ class GenreClassifier(object):
     def get_genres(self):
         db = Database(Config.get()['dataset']['database'], Config.get()['dataset']['source'])
         return get_genres(db, self.path, self.genre)
+
+    def set_mlb(self):
+        labels = [[label['_id']] for label in self.genres]
+        mlb = MultiLabelBinarizer()
+        return mlb.fit(labels)
 
     def load_model(self):
         """Loads the model
@@ -201,4 +207,4 @@ class GenreClassifier(object):
             model: string
                 Model name
         """
-        return Config.get()['output']+'_'+self.genre+str(self.index)
+        return Config.get()['output']+'_'+(self.genre or 'main')+str(self.index)

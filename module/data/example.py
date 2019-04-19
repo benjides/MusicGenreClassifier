@@ -29,7 +29,7 @@ def get_data(data):
     ----------
         data: raw json from the training
     """
-    x_train = data["lowlevel"]["gfcc"]["mean"]
+    x_train = data["lowlevel"]["mfcc"]["mean"]
     return np.array(x_train)
 
 def get_labels(labels):
