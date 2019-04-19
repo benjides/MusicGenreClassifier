@@ -55,7 +55,7 @@ class Network(object):
                 Fitted model with the history training values
         """
         callbacks = [
-            EarlyStopping(patience=5, monitor='loss'),
+            EarlyStopping(patience=15, monitor='loss'),
             TensorBoard(log_dir="logs/{}".format(name))
         ]
         return self.model.fit_generator(
@@ -124,7 +124,10 @@ class Network(object):
         Returns
         -------
         """
-        self.model.save(model_name + '.h5')
+        try:
+            self.model.save(model_name + '.h5')
+        except Exception as _:
+            pass
 
     def load_model(self, model_name):
         """Loads the model from disk

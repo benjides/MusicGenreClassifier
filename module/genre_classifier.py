@@ -25,10 +25,9 @@ class GenreClassifier(object):
     models = 'models/'
     reports = 'reports/'
 
-    def __init__(self, path='name', genre=None, index=0):
+    def __init__(self, path='name', genre=None):
         self.path = path
         self.genre = genre
-        self.index = index
         self.genres = self.get_genres()
 
     def train_model(self):
@@ -44,13 +43,12 @@ class GenreClassifier(object):
         if self.genre is not None:
             self.train()
         
-        for genre in self.genres:
-            g = GenreClassifier(
-                path='genres.'+self.path,
-                genre=genre['_id'],
-                index=self.index + 1
-            )
-            g.train_model()
+        # for genre in self.genres:
+        #     g = GenreClassifier(
+        #         path='genres.'+self.path,
+        #         genre=genre['_id']
+        #     )
+        #     g.train_model()
 
     def train(self):
         """Trains the model
@@ -92,9 +90,9 @@ class GenreClassifier(object):
             workers=Config.get()['train']['workers']
         )
 
-        self.evaluate_model(test)
-
         self.save_model(network)
+
+        self.evaluate_model(test)
 
     def evaluate_model(self, dataframe):
         x, y_true = data_generation(dataframe)
@@ -146,10 +144,7 @@ class GenreClassifier(object):
         with open(model + '.json', 'w') as f:
             json.dump(Config.get(), f, indent=4)
 
-        try:
-            network.save_model(model)
-        except:
-            pass
+        network.save_model(model)
         
         self.logger.info('Saved trained model at %s ', model)
 
@@ -173,7 +168,6 @@ class GenreClassifier(object):
             model = dill.load(f)
             self.path = model.path
             self.genre = model.genre
-            self.index = model.index
             self.genres = model.genres
 
     def get_model_path(self):
@@ -200,4 +194,4 @@ class GenreClassifier(object):
             model: string
                 Model name
         """
-        return Config.get()['output']+'_'+self.genre+str(self.index)
+        return Config.get()['output']+'_'+self.genre

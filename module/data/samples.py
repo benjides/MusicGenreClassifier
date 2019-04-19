@@ -5,14 +5,14 @@ def get_samples(db, path, genre):
 
     query = Aggregator() \
         .match(path, genre) \
-        .group("$release", mbid={"$last": "$mbid"}) \
+        .group("$release", mbid={"$first": "$mbid"}) \
         .project(_id=0, mbid=1, genre='1')
     
     positives = list(db.run_aggregate(query))
 
     query = Aggregator() \
         .match("genres.name", {'$ne': genre}) \
-        .group("$release", mbid={"$last": "$mbid"}) \
+        .group("$release", mbid={"$first": "$mbid"}) \
         .project(_id=0, mbid=1, genre='0') \
         .limit(len(positives))
 
@@ -20,10 +20,6 @@ def get_samples(db, path, genre):
 
     return pd.DataFrame(positives + negatives)
 
-def get_random(db, records):
+def get_random(db, path, genre, records):
     
-    query = Aggregator().sample(records)
-
-    rows = db.run_aggregate(query)
-
-    return pd.DataFrame.from_records(rows)
+    return get_samples(db, path, genre).sample(records)
