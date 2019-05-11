@@ -1,8 +1,10 @@
 import numpy as np
 from module.data.example import get_input
+from sklearn.preprocessing import StandardScaler
 
 def data_generation(rows, mlb):
         'Generates data containing batch_size samples'
+        scaler = StandardScaler()
         batch, labels = [], []
         for _, row in rows.iterrows():
             
@@ -13,5 +15,6 @@ def data_generation(rows, mlb):
             labels.append(label)
 
         batch = np.array(batch)
+        batch = scaler.fit_transform(batch.T).T
         labels = mlb.transform(labels)
         return (batch, labels)
