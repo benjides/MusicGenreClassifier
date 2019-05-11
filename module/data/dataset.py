@@ -22,3 +22,6 @@ class Dataset(Sequence):
         'Generate one batch of data'
         rows = self.dataframe.iloc[idx * self.batch_size:(idx + 1) * self.batch_size]
         return data_generation(rows, self.mlb)
+
+    def on_epoch_end(self):
+        self.dataframe = self.dataframe.sample(frac=1)
