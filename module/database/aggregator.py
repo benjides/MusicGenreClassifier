@@ -1,5 +1,5 @@
 """Agregator Builder"""
-
+import copy
 class Aggregator(object):
 
     'Initializes the builder'
@@ -146,6 +146,28 @@ class Aggregator(object):
             }
         )
         return self
+
+    def lookup(self, join, localField, foreignField, field):
+        self.pipeline.append(
+            {
+                '$lookup': {
+                    'from': join,
+                    'localField': localField,
+                    'foreignField': foreignField,
+                    'as': field
+                }
+            }
+        )
+        return self
+
+    def out(self, collection):
+        self.pipeline.append(
+            {
+                '$out': collection
+            }
+        )
+        return self
+
     
     def build(self):
         """Returns the pipeline ready to be ran
@@ -158,3 +180,8 @@ class Aggregator(object):
                 Built pipeline
         """
         return self.pipeline
+
+    def clone(self):
+        agg = Aggregator()
+        agg.pipeline = copy.deepcopy(self.pipeline)
+        return agg
