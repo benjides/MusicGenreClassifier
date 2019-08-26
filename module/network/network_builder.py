@@ -8,7 +8,8 @@ from module.network.hamming_distance import hamming_distance
 LAYERS = {
     'Dense':    lambda args: layers.Dense(**args),
     'Dropout':  lambda args: layers.Dropout(**args),
-    'LeakyReLU': lambda args: layers.LeakyReLU(**args)
+    'LeakyReLU': lambda args: layers.LeakyReLU(**args),
+    'BatchNormalization': lambda args: layers.BatchNormalization(**args)
 }
 
 LOSSES = {
