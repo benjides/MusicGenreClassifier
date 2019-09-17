@@ -1,0 +1,51 @@
+{
+    "dataset": {
+        "root": "E:/datasets/",
+        "database": "genre_classifier",
+        "source": "lastfm",
+        "records": 1500,
+        "split": {
+            "train": 0.8,
+            "validation": 0.1,
+            "test": 0.1
+        },
+        "threshold": 0.5
+    },
+    "layers": [
+        {
+            "layer": "Dense",
+            "args": {
+                "units": 128,
+                "activation": "relu",
+                "kernel_initializer": "glorot_uniform"
+            }
+        },
+        {
+            "layer": "Dense",
+            "args": {
+                "units": 64,
+                "activation": "relu",
+                "kernel_initializer": "glorot_uniform"
+            }
+        },
+        {
+            "layer": "Dense",
+            "args": {
+                "activation": "sigmoid",
+                "kernel_initializer": "glorot_uniform"
+            }
+        }
+    ],
+    "compile": {
+        "loss": "bp_mll_loss",
+        "optimizer": "adagrad",
+        "metrics": [
+            "accuracy"
+        ]
+    },
+    "train": {
+        "batch_size": 32,
+        "epochs": 100,
+        "workers": 1
+    }
+}

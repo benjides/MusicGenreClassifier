@@ -64,24 +64,22 @@ class GenreClassifier(object):
         -------
         """
 
-        dataframe = self.load_dataframe()
-        data = get_input(dataframe.iloc[0]['mbid'])
+        yeast = np.load('yeast.npz')
+
+        X_train = yeast['X_train']
+        Y_train = yeast['Y_train']
+
+        n = X_train.shape[0]
+        dim_no = X_train.shape[1]
+        class_no = Y_train.shape[1]
+       
         network = Network()
         self.logger.info("Compiling Model")
-        network.compile_model(data.shape[0], len(self.genres))
+        network.compile_model(dim_no, class_no)
 
-        
-        train, test, validation = split_dataset(dataframe, **Config.get()['dataset']['split'])
 
         training_generator = Dataset(
-            train,
-            self.mlb,
-            batch_size=Config.get()['train']['batch_size'],
-        )
-
-        validation_generator = Dataset(
-            validation,
-            self.mlb,
+            yeast,
             batch_size=Config.get()['train']['batch_size'],
         )
 
@@ -90,7 +88,6 @@ class GenreClassifier(object):
         network.train(
             name=self.get_model_name(),
             training_generator=training_generator,
-            validation_generator=validation_generator,
             epochs=Config.get()['train']['epochs'],
             workers=Config.get()['train']['workers']
         )

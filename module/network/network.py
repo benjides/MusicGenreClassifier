@@ -32,7 +32,7 @@ class Network(object):
         """
         self.model = builder(x_dim, y_dim)
 
-    def train(self, name, training_generator, validation_generator, epochs, workers):
+    def train(self, name, training_generator, epochs, workers):
         """Trains the model
 
         Fits the data using a generator
@@ -60,9 +60,8 @@ class Network(object):
         ]
         return self.model.fit_generator(
             generator=training_generator,
-            validation_data=validation_generator,
             epochs=epochs,
-            use_multiprocessing=True,
+            use_multiprocessing=False,
             workers=workers,
             callbacks=callbacks
         )

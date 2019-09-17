@@ -1,0 +1,71 @@
+{
+    "dataset": {
+        "root": "E:/datasets/",
+        "database": "genre_classifier",
+        "source": "lastfm",
+        "records": 1500,
+        "split": {
+            "train": 0.8,
+            "validation": 0.1,
+            "test": 0.1
+        },
+        "threshold": 0.5
+    },
+    "layers": [
+        {
+            "layer": "Dense",
+            "args": {
+                "units": 128,
+                "activation": "relu",
+                "kernel_initializer": "glorot_uniform"
+            }
+        },
+        {
+            "layer": "BatchNormalization",
+            "args": {}
+        },
+        {
+            "layer": "Dense",
+            "args": {
+                "units": 64,
+                "activation": "relu",
+                "kernel_initializer": "glorot_uniform"
+            }
+        },
+        {
+            "layer": "BatchNormalization",
+            "args": {}
+        },
+        {
+            "layer": "Dense",
+            "args": {
+                "units": 32,
+                "activation": "relu",
+                "kernel_initializer": "glorot_uniform"
+            }
+        },
+        {
+            "layer": "BatchNormalization",
+            "args": {}
+        },
+        {
+            "layer": "Dense",
+            "args": {
+                "activation": "softmax",
+                "kernel_initializer": "glorot_uniform"
+            }
+        }
+    ],
+    "compile": {
+        "loss": "categorical_crossentropy",
+        "optimizer": "adadelta",
+        "metrics": [
+            "accuracy"
+        ]
+    },
+    "train": {
+        "batch_size": 256,
+        "epochs": 255,
+        "workers": 4
+    }
+}
