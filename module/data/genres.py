@@ -14,7 +14,8 @@ def get_genres(db, path, genre):
     if genre is not None:
         query.match(path, genre)
 
-    query.group("$genres."+path)
-    query.sort(_id=1) 
+    query.group("$genres."+path, count={"$sum" : 1})
+    query.match("count", {"$gt" : 4000})
+    query.sort(count=1) 
     return list(db.run_aggregate(query))
 

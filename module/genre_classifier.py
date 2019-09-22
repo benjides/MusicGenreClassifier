@@ -25,10 +25,11 @@ class GenreClassifier(object):
     models = 'models/'
     reports = 'reports/'
 
-    def __init__(self, path='name', genre=None):
+    def __init__(self, path='name', genre=None, index=0):
         self.path = path
         self.genre = genre
         self.genres = self.get_genres()
+        self.index = index
 
     def train_model(self):
         """Trains the model
@@ -40,15 +41,19 @@ class GenreClassifier(object):
         Returns
         -------
         """
+        if self.index > 1:
+            return
+        
         if self.genre is not None:
             self.train()
         
-        # for genre in self.genres:
-        #     g = GenreClassifier(
-        #         path='genres.'+self.path,
-        #         genre=genre['_id']
-        #     )
-        #     g.train_model()
+        for genre in self.genres:
+            g = GenreClassifier(
+                path='genres.'+self.path,
+                genre=genre['_id'],
+                index=self.index+1
+            )
+            g.train_model()
 
     def train(self):
         """Trains the model
@@ -169,6 +174,7 @@ class GenreClassifier(object):
             self.path = model.path
             self.genre = model.genre
             self.genres = model.genres
+            self.index = model.index or 0
 
     def get_model_path(self):
         """Gets the model path+name
@@ -194,4 +200,4 @@ class GenreClassifier(object):
             model: string
                 Model name
         """
-        return Config.get()['output']+'_'+self.genre
+        return Config.get()['output']+'_'+(self.genre or 'main').replace("/", '-')+'_'+str(self.index)

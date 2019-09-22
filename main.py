@@ -1,6 +1,8 @@
 """Main Module"""
 import argparse
 from module.core import main
+import os
+os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin/'
 
 def parse_args():
     """Parse and stores the provided terminal args

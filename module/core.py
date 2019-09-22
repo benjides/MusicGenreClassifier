@@ -16,10 +16,7 @@ def main(args=None):
     Config.load_config(output=args.output)
     tf.enable_eager_execution()
 
-    classifier = GenreClassifier(
-        path="genres.name", 
-        genre="pop"
-    )
+    classifier = GenreClassifier()
     if args.test:
         test(classifier)
     else:
